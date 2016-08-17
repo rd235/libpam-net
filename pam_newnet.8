@@ -1,0 +1,56 @@
+.TH PAM_NEWNET 8 "August 17, 2016" "VirtualSquare Labs"
+.SH "NAME"
+pam_newnet \- create a new network namespace at login
+.SH "SYNOPSIS"
+\fBpam_newnet\&.so\fR 
+.SH DESCRIPTION
+The pam_newnet PAM module creates a new network namespace at login for users in the \fInewnet\fR group.
+
+Users in the newnet group can log-in through a
+network connection (e.g. by ssh) but their processes cannot communicate
+(the only interface they can see is the localhost of the namespace created
+at login time.
+Networking can take place just between processes of the same
+session).
+
+When pam_newnet is used together with a specific \fBcado(1)\fR configuration 
+users can configure their own networking services. (see https://github.com/rd235/cado)
+
+The nsutils tools, and more specfically \fBnetnsjoin(1)\fR, allow users to 
+assign placeholders to keep namespaces alive, assign meaningful tags for an easier management, 
+and later join any of their own namespaces (see https://github.com/rd235/nsutils)
+
+.SH "RETURN VALUES"
+.PP
+PAM_IGNORE
+.RS 4
+User does not belong to the \fInewnet\fR group\&.
+.RE
+.PP
+PAM_ABORT
+.RS 4
+Error in retrieving the user id or in the namespace creation\&.
+.RE
+.PP
+PAM_SUCCESS
+.RS 4
+Success\&.
+.RE
+.SH "EXAMPLES"
+.PP
+Add the following line to
+/etc/pam\&.d/sshd
+or /etc/pam\&.d/login
+.sp
+.RS 8
+session   required  pam_newnet.so
+.RE
+.sp
+.SH "SEE ALSO"
+.PP
+\fBpam.conf\fR(5),
+\fBpam.d\fR(5),
+\fBpam\fR(7)
+.SH "AUTHOR"
+.PP
+pam_newnet was written by Renzo Davoli and Eduard Caizer, University of Bologna

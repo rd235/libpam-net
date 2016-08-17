@@ -1,0 +1,56 @@
+.TH PAM_USERNET 8 "August 17, 2016" "VirtualSquare Labs"
+.SH "NAME"
+pam_usernet \- join the user own network namespace at login
+.SH "SYNOPSIS"
+\fBpam_usernet\&.so\fR 
+.SH DESCRIPTION
+The pam_usernet PAM module allow each user in \fIusernet\fR group to have their own
+network namespace.
+
+If a network namespace having the same name as the
+username exists, pam runs the user shell in that namespace. If such a
+namespace does does not exist, it is created during the login process.
+
+The system administrator can create a network
+namespace for each user in \fIusernet\fR group. Each namespace must be named
+after each username.
+Users will get their own network namespace at
+login.
+
+When pam_usernet is used together with a specific \fBcado(1)\fR configuration 
+users can configure their own networking services. (see https://github.com/rd235/cado)
+
+.SH "RETURN VALUES"
+.PP
+PAM_IGNORE
+.RS 4
+User does not belong to the \fIusernet\fR group\&.
+.RE
+.PP
+PAM_ABORT
+.RS 4
+Error in retrieving the user id or in the namespace creation/joining\&.
+.RE
+.PP
+PAM_SUCCESS
+.RS 4
+Success\&.
+.RE
+.SH "EXAMPLES"
+.PP
+Add the following line to
+/etc/pam\&.d/sshd
+or /etc/pam\&.d/login
+.sp
+.RS 8
+session   required  pam_usernet.so
+.RE
+.sp
+.SH "SEE ALSO"
+.PP
+\fBpam.conf\fR(5),
+\fBpam.d\fR(5),
+\fBpam\fR(7)
+.SH "AUTHOR"
+.PP
+pam_usernet was written by Renzo Davoli and Eduard Caizer, University of Bologna
