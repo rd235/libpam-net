@@ -42,7 +42,7 @@
 
 #include <pam_net_checkgroup.h>
 
-#define NSDIR "/var/run/netns/"
+#define NETNS_RUN_DIR "/var/run/netns/"
 #define NETNS_ETC_DIR "/etc/netns"
 
 /**
@@ -115,31 +115,31 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 
 	if (isusernet > 0) {
 		int nsfd;
-		size_t ns_pathlen=sizeof(NSDIR)+strlen(user)+1;
+		size_t ns_pathlen=sizeof(NETNS_RUN_DIR)+strlen(user)+1;
 		char ns_path[ns_pathlen];
 
-		if (mkdir(NSDIR, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)) {
+		if (mkdir(NETNS_RUN_DIR, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)) {
 			if (errno != EEXIST) {
-					syslog (LOG_ERR, "cannot create netns dir %s: %s",NSDIR, strerror(errno));
+					syslog (LOG_ERR, "cannot create netns dir %s: %s",NETNS_RUN_DIR, strerror(errno));
 					goto close_log_and_abort;
 			}
 		}
-		if (mount("", NSDIR, "none", MS_SHARED | MS_REC, NULL)) {
+		if (mount("", NETNS_RUN_DIR, "none", MS_SHARED | MS_REC, NULL)) {
 			if (errno != EINVAL) {
-				syslog (LOG_ERR, "mount --make-shared %s: %s",NSDIR, strerror(errno));
+				syslog (LOG_ERR, "mount --make-shared %s: %s",NETNS_RUN_DIR, strerror(errno));
 				goto close_log_and_abort;
 			}
-			if (mount(NSDIR, NSDIR, "none", MS_BIND, NULL)) {
-				syslog (LOG_ERR, "mount --bind %s: %s",NSDIR, strerror(errno));
+			if (mount(NETNS_RUN_DIR, NETNS_RUN_DIR, "none", MS_BIND, NULL)) {
+				syslog (LOG_ERR, "mount --bind %s: %s",NETNS_RUN_DIR, strerror(errno));
 				goto close_log_and_abort;
 			}
-			if (mount("", NSDIR, "none", MS_SHARED | MS_REC, NULL)) {
-				syslog (LOG_ERR, "mount --make-shared after bind %s: %s",NSDIR, strerror(errno));
+			if (mount("", NETNS_RUN_DIR, "none", MS_SHARED | MS_REC, NULL)) {
+				syslog (LOG_ERR, "mount --make-shared after bind %s: %s",NETNS_RUN_DIR, strerror(errno));
 				goto close_log_and_abort;
 			}
 		}
 
-		snprintf(ns_path,ns_pathlen,NSDIR "%s",user);
+		snprintf(ns_path,ns_pathlen,NETNS_RUN_DIR "%s",user);
 		if ((nsfd = open(ns_path, O_RDONLY)) < 0) {
 			if (errno == ENOENT) {
 				if ((nsfd = open(ns_path, O_RDONLY|O_CREAT|O_EXCL, 0)) < 0) {
