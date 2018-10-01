@@ -57,7 +57,7 @@ sysadmin can create *renzousernet*'s network namespace as follows:
 
 ```
 # ip netns add renzousernet
-# ip netns exec renzousernet ip addr add 127.0.0.1/8 dev lo
+# ip -netns renzousernet  link set dev lo up
 # ip netns exec renzousernet tunctl -t eth0
 # ...
 ```
