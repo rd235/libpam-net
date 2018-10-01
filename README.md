@@ -38,18 +38,22 @@ usernet:x:149:renzousernet
 
 ### Use Cases
 
-- **pam_newnet.so**. Users in the *newnet* group can log-in through a network
-  connection (e.g. by ssh) but their processes cannot communicate with the
-  network at all. The only interface they can see is an isolated loopback
-  interface created at login time. Hence networking can only take place between
-  processes of the same session.
+#### Disallowing external network access for selected users
 
-- **pam_usernet.so**. The system administrator can create a network namespace
-  for each user in the *usernet* group. Each namespace must be named after each
-  username.
+Using **pam_newnet.so** users in the *newnet* group can log-in through a network
+connection (e.g. by ssh) but their processes cannot communicate with the network
+at all. The only interface they can see is an isolated loopback interface
+created at login time. Hence networking can only take place between processes of
+the same session.
 
-Users will *land* in their own network namespace at login. e.g. the sysadmin can
-create *renzousernet*'s network namespace as follows:
+##### Segregated network namespaces for selected user
+
+Using **pam_usernet.so** the system administrator can create network namespaces
+for each user in the *usernet* group. Each namespace must be named after each
+username.
+
+Users will *land* in their assigned network namespace at login. e.g. the
+sysadmin can create *renzousernet*'s network namespace as follows:
 
 ```
 # ip netns add renzousernet
@@ -58,19 +62,21 @@ create *renzousernet*'s network namespace as follows:
 # ...
 ```
 
-- **pam_newnet.so** or **pam_usernet.so** with **cado** (see
-  [cado on GitHub](https://github.com/rd235/cado). Users in *newnet* or
-  *usernet* which are allowed to gain **CAP_NET_ADMIN** capability can manage
-  their networks by themselves. They can create tap interfaces with **tunctl**
-  or **vde_tunctl**, assign IP addresses, define routing etc. Users can only
-  configure their own network namespace, not the real network interfaces and
-  services.
+##### User-managed unpriviledged network namespaces
 
-- **pam_newnet.so** or **pam_usernet.so** with **cado** and **vde** (virtual
-  distributed ethernet). Users can connect their networks to vde services
-  (e.g. vde switches).
+- Using **pam_newnet.so** or **pam_usernet.so** together with **cado** (see
+  [cado on GitHub](https://github.com/rd235/cado). Users in the *newnet* or
+  *usernet* groups which are allowed to gain **CAP_NET_ADMIN** capability can
+  manage their network namespaces by themselves. They can create tap interfaces
+  with **tunctl** or **vde_tunctl**, assign IP addresses, define routing,
+  etc. Users can only configure their own network namespace, not the real network
+  interfaces and services.
 
-- **pam_newnet.so** and **netnsjoin** (a tool of nsutils, see
+- Using **pam_newnet.so** or **pam_usernet.so** together with **cado** and
+  **vde** (virtual distributed ethernet) users can connect their own networks to
+  vde services (e.g. vde switches).
+
+- Using **pam_newnet.so** and **netnsjoin** (a tool of nsutils, see
   [nsutils on GitHub](https://github.com/rd235/nsutils)). Each user can create
   new namespaces (just by starting a new session), they can keep namespaces
   alive, assign meaningful tags for easier management, and later join any of
