@@ -145,101 +145,98 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 		return PAM_IGNORE;
 	}
 
-	{
-		int nsfd;
-		if (mkdir(NETNS_RUN_DIR, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)) {
-			if (errno != EEXIST) {
-					syslog (LOG_ERR, "cannot create netns dir %s: %s",NETNS_RUN_DIR, strerror(errno));
-					goto close_log_and_abort;
-			}
+	int nsfd;
+	if (mkdir(NETNS_RUN_DIR, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)) {
+		if (errno != EEXIST) {
+			syslog (LOG_ERR, "cannot create netns dir %s: %s",NETNS_RUN_DIR, strerror(errno));
+			goto close_log_and_abort;
+		}
+	}
+	if (mount("", NETNS_RUN_DIR, "none", MS_SHARED | MS_REC, NULL)) {
+		if (errno != EINVAL) {
+			syslog (LOG_ERR, "mount --make-shared %s: %s",NETNS_RUN_DIR, strerror(errno));
+			goto close_log_and_abort;
+		}
+		if (mount(NETNS_RUN_DIR, NETNS_RUN_DIR, "none", MS_BIND, NULL)) {
+			syslog (LOG_ERR, "mount --bind %s: %s",NETNS_RUN_DIR, strerror(errno));
+			goto close_log_and_abort;
 		}
 		if (mount("", NETNS_RUN_DIR, "none", MS_SHARED | MS_REC, NULL)) {
-			if (errno != EINVAL) {
-				syslog (LOG_ERR, "mount --make-shared %s: %s",NETNS_RUN_DIR, strerror(errno));
-				goto close_log_and_abort;
-			}
-			if (mount(NETNS_RUN_DIR, NETNS_RUN_DIR, "none", MS_BIND, NULL)) {
-				syslog (LOG_ERR, "mount --bind %s: %s",NETNS_RUN_DIR, strerror(errno));
-				goto close_log_and_abort;
-			}
-			if (mount("", NETNS_RUN_DIR, "none", MS_SHARED | MS_REC, NULL)) {
-				syslog (LOG_ERR, "mount --make-shared after bind %s: %s",NETNS_RUN_DIR, strerror(errno));
-				goto close_log_and_abort;
-			}
-		}
-
-		rv = asprintf(&ns_path, "%s/%s", NETNS_RUN_DIR, user);
-		if(rv == -1)
+			syslog (LOG_ERR, "mount --make-shared after bind %s: %s",NETNS_RUN_DIR, strerror(errno));
 			goto close_log_and_abort;
+		}
+	}
 
-		if ((nsfd = open(ns_path, O_RDONLY)) < 0) {
-			if (errno == ENOENT) {
-				if ((nsfd = open(ns_path, O_RDONLY|O_CREAT|O_EXCL, 0)) < 0) {
-					syslog (LOG_ERR, "cannot create netns %s: %s",ns_path, strerror(errno));
-					goto close_log_and_abort;
-				}
-				close(nsfd);
-				if (unshare(CLONE_NEWNET) < 0) {
-					syslog (LOG_ERR, "Failed to create a new netns %s: %s",ns_path, strerror(errno));
-					goto close_log_and_abort;
-				}
-				if (mount("/proc/self/ns/net", ns_path, "none", MS_BIND, NULL) < 0) {
-					syslog (LOG_ERR, "mount /proc/self/ns/net -> %s failed: %s",ns_path, strerror(errno));
-					goto close_log_and_abort;
-				}
-			} else {
-				syslog (LOG_ERR, "netns open failed %s",ns_path);
-				goto close_log_and_abort;
-			}
-		} else {
-			if (setns(nsfd, CLONE_NEWNET) != 0) {
-				syslog (LOG_ERR, "cannot join netns %s: %s",ns_path, strerror(errno));
-				close(nsfd);
+	rv = asprintf(&ns_path, "%s/%s", NETNS_RUN_DIR, user);
+	if(rv == -1)
+		goto close_log_and_abort;
+
+	if ((nsfd = open(ns_path, O_RDONLY)) < 0) {
+		if (errno == ENOENT) {
+			if ((nsfd = open(ns_path, O_RDONLY|O_CREAT|O_EXCL, 0)) < 0) {
+				syslog (LOG_ERR, "cannot create netns %s: %s",ns_path, strerror(errno));
 				goto close_log_and_abort;
 			}
 			close(nsfd);
-			if (unshare(CLONE_NEWNS) < 0) {
-				syslog (LOG_ERR, "unshare failed: %s", strerror(errno));
+			if (unshare(CLONE_NEWNET) < 0) {
+				syslog (LOG_ERR, "Failed to create a new netns %s: %s",ns_path, strerror(errno));
 				goto close_log_and_abort;
 			}
-		}
-
-		if (unshare(CLONE_NEWNS) < 0) {
-			syslog (LOG_ERR, "unshare failed: %s\n", strerror(errno));
-			goto close_log_and_abort;
-		}
-		/* Don't let any mounts propagate back to the parent */
-		if (mount("", "/", "none", MS_SLAVE | MS_REC, NULL)) {
-			fprintf(stderr, "\"mount --make-rslave /\" failed: %s\n",
-				strerror(errno));
-			goto close_log_and_abort;
-		}
-
-		/* Mount a version of /sys that describes the network namespace */
-		unsigned long mountflags = 0;
-
-		if (umount2("/sys", MNT_DETACH) < 0) {
-			struct statvfs fsstat;
-
-			/* If this fails, perhaps there wasn't a sysfs instance mounted. Good. */
-			if (statvfs("/sys", &fsstat) == 0) {
-				/* We couldn't umount the sysfs, we'll attempt to overlay it.
-				 * A read-only instance can't be shadowed with a read-write one. */
-				if (fsstat.f_flag & ST_RDONLY)
-					mountflags = MS_RDONLY;
+			if (mount("/proc/self/ns/net", ns_path, "none", MS_BIND, NULL) < 0) {
+				syslog (LOG_ERR, "mount /proc/self/ns/net -> %s failed: %s",ns_path, strerror(errno));
+				goto close_log_and_abort;
 			}
-		}
-		if (mount(user, "/sys", "sysfs", mountflags, NULL) < 0) {
-			syslog (LOG_ERR, "mount of /sys failed: %s\n", strerror(errno));
+		} else {
+			syslog (LOG_ERR, "netns open failed %s",ns_path);
 			goto close_log_and_abort;
 		}
-
-		/* Setup bind mounts for config files in /etc */
-		if(bind_etc(user) == -1) {
-			syslog (LOG_ERR, "mounting /etc/netns/%s config files failed", user);
+	} else {
+		if (setns(nsfd, CLONE_NEWNET) != 0) {
+			syslog (LOG_ERR, "cannot join netns %s: %s",ns_path, strerror(errno));
+			close(nsfd);
 			goto close_log_and_abort;
 		}
+		close(nsfd);
+		if (unshare(CLONE_NEWNS) < 0) {
+			syslog (LOG_ERR, "unshare failed: %s", strerror(errno));
+			goto close_log_and_abort;
+		}
+	}
 
+	if (unshare(CLONE_NEWNS) < 0) {
+		syslog (LOG_ERR, "unshare failed: %s\n", strerror(errno));
+		goto close_log_and_abort;
+	}
+	/* Don't let any mounts propagate back to the parent */
+	if (mount("", "/", "none", MS_SLAVE | MS_REC, NULL)) {
+		fprintf(stderr, "\"mount --make-rslave /\" failed: %s\n",
+			strerror(errno));
+		goto close_log_and_abort;
+	}
+
+	/* Mount a version of /sys that describes the network namespace */
+	unsigned long mountflags = 0;
+
+	if (umount2("/sys", MNT_DETACH) < 0) {
+		struct statvfs fsstat;
+
+		/* If this fails, perhaps there wasn't a sysfs instance mounted. Good. */
+		if (statvfs("/sys", &fsstat) == 0) {
+			/* We couldn't umount the sysfs, we'll attempt to overlay it.
+			 * A read-only instance can't be shadowed with a read-write one. */
+			if (fsstat.f_flag & ST_RDONLY)
+				mountflags = MS_RDONLY;
+		}
+	}
+	if (mount(user, "/sys", "sysfs", mountflags, NULL) < 0) {
+		syslog (LOG_ERR, "mount of /sys failed: %s\n", strerror(errno));
+		goto close_log_and_abort;
+	}
+
+	/* Setup bind mounts for config files in /etc */
+	if(bind_etc(user) == -1) {
+		syslog (LOG_ERR, "mounting /etc/netns/%s config files failed", user);
+		goto close_log_and_abort;
 	}
 
 	end_log();
