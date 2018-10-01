@@ -7,12 +7,12 @@ network namespace at login.
 
 - **pam_usernet.so** users belonging to the *usernet* group get their own
 network name at login. If a network namespace having the same name as the
-username exists, pam runs the user shell in that namespace. If such a
+username exists, pam runs the user's shell in that namespace. If such a
 namespace does does not exist, it is created during the login process.
 
 ### INSTALL:
 
-get the source code, from the root of the source tree run:
+Get the source code and run the following from the root of the source tree:
 ```
 $ autoreconf -if
 $ ./configure --with-libsecuritydir=/lib/x86_64-linux-gnu/security
@@ -36,21 +36,20 @@ newnet:x:148:renzononet
 usernet:x:149:renzousernet
 ```
 
-### Usage cases.
+### Use Cases
 
-- **pam_newnet.so**. Users in the *newnet* group can log-in through a
-  network connection (e.g. by ssh) but their processes cannot communicate
-(the only interface they can see is the localhost of the namespace created
-at login time.
-Networking can take place just between processes of the same
-session).
+- **pam_newnet.so**. Users in the *newnet* group can log-in through a network
+  connection (e.g. by ssh) but their processes cannot communicate with the
+  network at all. The only interface they can see is an isolated loopback
+  interface created at login time. Hence networking can only take place between
+  processes of the same session.
 
-- **pam_usernet.so**. The system administrator can create a network
-  namespace for each user in *usernet* group. Each namespace must be named
-  after each username.
-Users will *land* in their own network namespace at
-login. e.g. the sysadm can create *renzousernet*'s network namespace as
-follows:
+- **pam_usernet.so**. The system administrator can create a network namespace
+  for each user in the *usernet* group. Each namespace must be named after each
+  username.
+
+Users will *land* in their own network namespace at login. e.g. the sysadmin can
+create *renzousernet*'s network namespace as follows:
 
 ```
 # ip netns add renzousernet
@@ -59,21 +58,21 @@ follows:
 # ...
 ```
 
-- **pam_newnet.so** or **pam_usernet.so** with **cado** (see [cado on
-  GitHub](https://github.com/rd235/cado). Users in *newnet* or *usernet*
-which are allowed to gain **CAP_NET_ADMIN** capability can manage their
-networks by themselves. They can create tap interfaces (by **tunctl** or
-**vde_tunctl**), assign IP addresses, define routing etc. Users can
-configure only their own network namespaces, not the real network
-interfaces and services.
+- **pam_newnet.so** or **pam_usernet.so** with **cado** (see
+  [cado on GitHub](https://github.com/rd235/cado). Users in *newnet* or
+  *usernet* which are allowed to gain **CAP_NET_ADMIN** capability can manage
+  their networks by themselves. They can create tap interfaces with **tunctl**
+  or **vde_tunctl**, assign IP addresses, define routing etc. Users can only
+  configure their own network namespace, not the real network interfaces and
+  services.
 
-- **pam_newnet.so** or **pam_usernet.so** with **cado** and **vde**
-  (virtual distributed ethernet). Users can connect their networks to vde
-services (e.g. vde switches).
+- **pam_newnet.so** or **pam_usernet.so** with **cado** and **vde** (virtual
+  distributed ethernet). Users can connect their networks to vde services
+  (e.g. vde switches).
 
-- **pam_newnet.so** and **netnsjoin** (a tool of nsutils, see [nsutils on
-  GitHub](https://github.com/rd235/nsutils)). Each user can create new
-namespaces (just by starting a new session), he/she can keep namespaces
-alive, assign meaningful tags for an easier management, 
-and later join any of their own namespaces.
+- **pam_newnet.so** and **netnsjoin** (a tool of nsutils, see
+  [nsutils on GitHub](https://github.com/rd235/nsutils)). Each user can create
+  new namespaces (just by starting a new session), they can keep namespaces
+  alive, assign meaningful tags for easier management, and later join any of
+  their own namespaces.
 
