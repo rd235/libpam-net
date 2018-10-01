@@ -25,6 +25,7 @@
 
 #define _GNU_SOURCE
 #include <stdio.h>
+#include <stdlib.h>
 #include <syslog.h>
 #include <errno.h>
 #include <string.h>
@@ -63,37 +64,62 @@ void end_log()
 }
 
 /**
- * bind_etc: Mount files from /etc/netns into current namespace
+ * bind_etc: Mount config files from /etc/netns/<name>/ into current namespace.
  */
-void bind_etc(const char *name)
+int bind_etc(const char *name)
 {
-	char etc_netns_path[sizeof(NETNS_ETC_DIR) + NAME_MAX];
-	char netns_name[PATH_MAX];
-	char etc_name[PATH_MAX];
-	struct dirent *entry;
-	DIR *dir;
+	int rv = 0;
+	char *etc_netns_path = NULL;
 
-	if (strlen(name) >= NAME_MAX)
-		return;
+	rv = asprintf(&etc_netns_path, "%s/%s", NETNS_ETC_DIR, name);
+	if(rv == -1)
+		goto alloc_fail;
 
-	snprintf(etc_netns_path, sizeof(etc_netns_path), "%s/%s", NETNS_ETC_DIR, name);
-	dir = opendir(etc_netns_path);
+	DIR *dir = opendir(etc_netns_path);
 	if (!dir)
-		return;
+		return -1;
 
+	struct dirent *entry = NULL;
+	char *netns_name = NULL;
+	char *etc_name = NULL;
 	while ((entry = readdir(dir)) != NULL) {
 		if (strcmp(entry->d_name, ".") == 0)
 			continue;
 		if (strcmp(entry->d_name, "..") == 0)
 			continue;
-		snprintf(netns_name, sizeof(netns_name), "%s/%s", etc_netns_path, entry->d_name);
-		snprintf(etc_name, sizeof(etc_name), "/etc/%s", entry->d_name);
+
+		rv = asprintf(&netns_name, "%s/%s", etc_netns_path, entry->d_name);
+		if(rv == -1)
+			goto free_dir;
+
+		rv = asprintf(&etc_name, "/etc/%s", entry->d_name);
+		if(rv == -1)
+			goto free_netns_name;
+
 		if (mount(netns_name, etc_name, "none", MS_BIND, NULL) < 0) {
 			syslog (LOG_ERR, "Bind %s -> %s failed: %s\n",
 				netns_name, etc_name, strerror(errno));
 		}
 	}
+
+	rv = 0;
+
+/*free_etc_name:*/
+	free(etc_name);
+free_netns_name:
+	free(netns_name);
+free_dir:
 	closedir(dir);
+/*free_etc_netns_path:*/
+	free(etc_netns_path);
+
+alloc_fail:
+	if(rv == -1) {
+		syslog (LOG_ERR, "allocating memory failed");
+		return -1;
+	} else {
+		return 0;
+	}
 }
 
 /*
@@ -104,20 +130,23 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 	const char *user;
 	int rv;
 	int isusernet;
+	char *ns_path = NULL;
 
 	init_log ("pam_usernet");
 	if ((rv=pam_get_user(pamh, &user, NULL) != PAM_SUCCESS)) {
 		syslog (LOG_ERR, "get user: %s", strerror(errno));
-		goto close_log_and_exit;
+		end_log();
+		return PAM_SUCCESS;
 	}
 
 	isusernet = checkgroup(user, "usernet");
+	if(isusernet < 0) {
+		end_log();
+		return PAM_IGNORE;
+	}
 
-	if (isusernet > 0) {
+	{
 		int nsfd;
-		size_t ns_pathlen=sizeof(NETNS_RUN_DIR)+strlen(user)+1;
-		char ns_path[ns_pathlen];
-
 		if (mkdir(NETNS_RUN_DIR, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)) {
 			if (errno != EEXIST) {
 					syslog (LOG_ERR, "cannot create netns dir %s: %s",NETNS_RUN_DIR, strerror(errno));
@@ -139,7 +168,10 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 			}
 		}
 
-		snprintf(ns_path,ns_pathlen,NETNS_RUN_DIR "%s",user);
+		rv = asprintf(&ns_path, "%s/%s", NETNS_RUN_DIR, user);
+		if(rv == -1)
+			goto close_log_and_abort;
+
 		if ((nsfd = open(ns_path, O_RDONLY)) < 0) {
 			if (errno == ENOENT) {
 				if ((nsfd = open(ns_path, O_RDONLY|O_CREAT|O_EXCL, 0)) < 0) {
@@ -203,16 +235,22 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 		}
 
 		/* Setup bind mounts for config files in /etc */
-		bind_etc(user);
-	} else
-		rv=PAM_IGNORE;
-close_log_and_exit:
+		if(bind_etc(user) == -1) {
+			syslog (LOG_ERR, "mounting /etc/netns/%s config files failed", user);
+			goto close_log_and_abort;
+		}
+
+	}
+
 	end_log();
-	return rv;
+	return PAM_SUCCESS;
+
 close_log_and_abort:
-	rv = PAM_ABORT;
+	if(ns_path)
+		free(ns_path);
+
 	end_log();
-	return rv;
+	return PAM_ABORT;
 }
 
 /*
