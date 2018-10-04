@@ -53,7 +53,7 @@ for each user in the *usernet* group. Each namespace must be named after each
 username.
 
 Users will *land* in their assigned network namespace at login. e.g. the
-sysadmin can create *renzousernet*'s network namespace as follows:
+sysadmin can create a network namespace for user *renzousernet* as follows:
 
 ```
 # ip netns add renzousernet
@@ -61,6 +61,21 @@ sysadmin can create *renzousernet*'s network namespace as follows:
 # ip netns exec renzousernet tunctl -t eth0
 # ...
 ```
+
+If the directory `/etc/netns/<username>/` exists files directly underneath it are
+mounted over files in `/etc`. This can be used for overriding the DNS nameserver
+settings in the user's netns.
+
+Taking *renzousernet* as an example again, this is what you'd do:
+
+```
+# cat > /etc/netns/renzousernet/resolv.conf <<EOF
+nameserver 1.2.3.4
+EOF
+```
+
+This will result in `/etc/resolv.conf` being overriden when *renzousernet* logs
+in.
 
 ##### User-managed unpriviledged network namespaces
 
