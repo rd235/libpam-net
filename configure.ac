@@ -25,7 +25,8 @@ LT_INIT
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h stdint.h stdlib.h string.h unistd.h syslog.h])
+AC_CHECK_HEADERS([fcntl.h stdint.h stdlib.h string.h unistd.h syslog.h limits.h \
+                  dirent.h sys/statvfs.h])
 AC_CHECK_HEADERS([security/pam_modules.h security/pam_appl.h],
 		[],
 		[AC_MSG_ERROR([missing lbpam0g header])])
