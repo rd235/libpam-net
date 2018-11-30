@@ -244,7 +244,7 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 	}
 
 	isusernet = checkgroup(user, "usernet");
-	if(isusernet < 0) {
+	if(isusernet <= 0) {
 		end_log();
 		return PAM_IGNORE;
 	}
