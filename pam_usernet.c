@@ -3,6 +3,7 @@
  * Copyright (C) 2016  Renzo Davoli, Eduard Caizer University of Bologna
  * Copyright (C) 2011-2017 The iproute2 Authors
  * Copyright (C) 2018  Daniel Gröber
+ * Copyright (C) 2019  Marcin Szewczyk <mszewczyk@wodny.org>
  *
  * pam_usernet module
  *    provide each user with their own network
@@ -41,10 +42,20 @@
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef HAVE_LIBNL_ROUTE_3_0
+#include <netlink/route/link.h>
+#endif
+
 #include <pam_net_checkgroup.h>
 
 #define NETNS_RUN_DIR "/var/run/netns/"
 #define NETNS_ETC_DIR "/etc/netns"
+
+#define USERNET_BRINGLOUP 01
 
 /**
  * init_log: log initialization with the given name
@@ -226,6 +237,75 @@ int enter_netns(char *ns_path)
 	return 0;
 }
 
+/**
+ * bring_lo_up: Bring the loopback device up inside namespace.
+ */
+#ifdef HAVE_LIBNL_ROUTE_3_0
+int bring_lo_up() {
+	/* based on https://github.com/hashbang/pam_network_namespace/ */
+	int rv, error = -1;
+	struct nl_sock *sock = NULL;
+	struct rtnl_link *lo = NULL, *lo_changes = NULL;
+
+	sock = nl_socket_alloc();
+	if (sock == NULL) {
+		syslog (LOG_ERR, "unable to allocate netlink socket");
+		goto nl_cleanup;
+	}
+
+	rv = nl_connect(sock, NETLINK_ROUTE);
+	if (rv != 0) {
+		syslog (LOG_ERR, "unable to connect to netlink socket: %s", nl_geterror(rv));
+		goto nl_cleanup;
+	}
+
+	/* search interface by name only, no fallback to the first interface */
+	rv = rtnl_link_get_kernel(sock, 0, "lo", &lo);
+	if (rv != 0) {
+		syslog (LOG_ERR, "unable to get looopback link: %s", nl_geterror(rv));
+		goto nl_cleanup;
+	}
+	lo_changes = rtnl_link_alloc();
+	if (lo_changes == NULL) {
+		syslog (LOG_ERR, "unable to allocate link");
+		goto nl_cleanup;
+	}
+	rtnl_link_set_flags(lo_changes, IFF_UP);
+	rv = rtnl_link_change(sock, lo, lo_changes, 0);
+	if (rv != 0) {
+		syslog (LOG_ERR, "unable to bring up loopback interface: %s", nl_geterror(rv));
+		goto nl_cleanup;
+	}
+	error = 0;
+
+nl_cleanup:
+	if (lo_changes) rtnl_link_put(lo_changes);
+	if (lo) rtnl_link_put(lo);
+	if (sock) nl_socket_free(sock);
+	return error;
+}
+#endif
+
+static int
+_pam_session_parse(pam_handle_t *pamh, int flags, int argc, const char **argv)
+{
+	int ctrl = 0;
+
+	/* step through arguments */
+	for (; argc-- > 0; ++argv) {
+#		ifdef HAVE_LIBNL_ROUTE_3_0
+		if (!strcmp(*argv,"bringloup")) {
+			ctrl |= USERNET_BRINGLOUP;
+		} else
+#		endif
+		{
+			syslog (LOG_ERR, "unknown option: %s", *argv);
+		}
+	}
+
+	return ctrl;
+}
+
 /*
  * PAM entry point for session creation
  */
@@ -234,9 +314,13 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 	const char *user;
 	int rv;
 	int isusernet;
+	int ctrl;
 	char *ns_path = NULL;
 
 	init_log ("pam_usernet");
+
+	ctrl = _pam_session_parse(pamh, flags, argc, argv);
+
 	if ((rv=pam_get_user(pamh, &user, NULL) != PAM_SUCCESS)) {
 		syslog (LOG_ERR, "get user: %s", strerror(errno));
 		end_log();
@@ -298,6 +382,12 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 			user);
 		goto close_log_and_abort;
 	}
+
+#	ifdef HAVE_LIBNL_ROUTE_3_0
+	if((ctrl & USERNET_BRINGLOUP) && bring_lo_up() == -1) {
+		syslog (LOG_WARNING, "bringing lo interface up failed");
+	}
+#	endif
 
 	end_log();
 	return PAM_SUCCESS;
