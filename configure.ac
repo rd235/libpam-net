@@ -23,6 +23,10 @@ AC_PROG_INSTALL
 LT_INIT
 
 # Checks for libraries.
+PKG_CHECK_MODULES([libnl_route_3_0], [libnl-route-3.0],
+    AC_DEFINE([HAVE_LIBNL_ROUTE_3_0], [1], [libnl-route-3.0 available]),
+    []
+)
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h stdint.h stdlib.h string.h unistd.h syslog.h limits.h \

@@ -5,7 +5,7 @@
 - **pam_newnet.so**: users belonging to the *newnet* group get a new
 network namespace at login.
 
-- **pam_usernet.so** users belonging to the *usernet* group get their own
+- **pam_usernet.so**: users belonging to the *usernet* group get their own
 network name at login. If a network namespace having the same name as the
 username exists, pam runs the user's shell in that namespace. If such a
 namespace does does not exist, it is created during the login process.
@@ -35,6 +35,17 @@ e.g. in /etc/group:
 newnet:x:148:renzononet
 usernet:x:149:renzousernet
 ```
+
+### Module arguments
+
+You can also specify additional module arguments, e.g.:
+```
+session   required  pam_usernet.so  bringloup
+```
+
+- **pam_usernet.so**
+    - `bringloup` - bring the `lo` interface up after entering the
+      namespace (depends on the `libnl-route-3.0` library).
 
 ### Use Cases
 
