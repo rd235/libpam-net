@@ -21,7 +21,6 @@
  *
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <syslog.h>
 #include <errno.h>

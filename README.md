@@ -14,8 +14,9 @@ namespace does does not exist, it is created during the login process.
 
 Get the source code and run the following from the root of the source tree:
 ```
-$ autoreconf -if
-$ ./configure --with-libsecuritydir=/lib/x86_64-linux-gnu/security
+$ mkdir build
+$ cd build
+$ cmake .. -DLIBSECURITYDIR=/lib/x86_64-linux-gnu/security/
 $ make
 $ sudo make install
 ```
