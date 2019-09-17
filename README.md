@@ -14,11 +14,9 @@ namespace does does not exist, it is created during the login process.
 
 Get the source code and run the following from the root of the source tree:
 ```
-$ mkdir build
-$ cd build
-$ cmake .. -DLIBSECURITYDIR=/lib/x86_64-linux-gnu/security/
-$ make
-$ sudo make install
+$ create_deb.sh
+$ debuild -uc -us -sa
+# apt install ../libpam-net_*.deb
 ```
 
 Add the rules to the pam configuration files: e.g. */etc/pam.d/sshd* or
@@ -35,6 +33,11 @@ e.g. in /etc/group:
 ```
 newnet:x:148:renzononet
 usernet:x:149:renzousernet
+```
+
+### UNINSTALL:
+```
+# apt remove libpam-net
 ```
 
 ### Use Cases
