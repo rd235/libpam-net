@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
-project("libpam-net")
+project("libpam-net"
+			LANGUAGES C)
 
 include(GNUInstallDirs)
 
