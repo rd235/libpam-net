@@ -1,9 +1,12 @@
 ## LIBPAM-NET: create/join network namespaces at login
 
-**libpam-net** implements two pam modules:
+**libpam-net** implements three pam modules:
 
 - **pam_newnet.so**: users belonging to the *newnet* group get a new
-network namespace at login.
+network namespace at login (loopback device *lo* is down)
+
+- **pam_lonet.so**: users belonging to the *lonet* group get a new
+network namespace at login (loopback device *lo* is up)
 
 - **pam_usernet.so** users belonging to the *usernet* group get their own
 network name at login. If a network namespace having the same name as the
