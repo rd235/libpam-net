@@ -1,4 +1,4 @@
-## LIBPAM-NET: create/join network namespaces at login 
+## LIBPAM-NET: create/join network namespaces at login
 
 **libpam-net** implements two pam modules:
 
@@ -11,6 +11,10 @@ username exists, pam runs the user's shell in that namespace. If such a
 namespace does does not exist, it is created during the login process.
 
 ### INSTALL:
+
+Prerequisite: install [nlinline](https://github.com/virtualsquare/nlinline)
+first (it is an include file, not a library, so it will not create dependencies
+in the pam modules).
 
 Get the source code and run the following from the root of the source tree:
 ```
@@ -25,6 +29,7 @@ Add the rules to the pam configuration files: e.g. */etc/pam.d/sshd* or
 */etc/pam.d/login*
 ```
 session   required  pam_newnet.so
+session   required  pam_lonet.so
 session   required  pam_usernet.so
 ```
 
@@ -34,7 +39,8 @@ must be subject to one or the other service:
 e.g. in /etc/group:
 ```
 newnet:x:148:renzononet
-usernet:x:149:renzousernet
+newnet:x:149:renzononet
+usernet:x:150:renzousernet
 ```
 
 ### Use Cases
@@ -43,9 +49,14 @@ usernet:x:149:renzousernet
 
 Using **pam_newnet.so** users in the *newnet* group can log-in through a network
 connection (e.g. by ssh) but their processes cannot communicate with the network
-at all. The only interface they can see is an isolated loopback interface
-created at login time. Hence networking can only take place between processes of
-the same session.
+at all. The only interface they can see is an isolated loopback **lo** interface
+created at login time *and lo is down*.
+
+aUsing **pam_lonet.so** users in the *lonet* group can log-in through a network
+connection (e.g. by ssh) but their processes cannot communicate with the network
+at all. The only interface they can see is an isolated loopback **lo** interface
+created at login time. *lo interface is up*, hence networking can only take place
+between processes of the same session.
 
 ##### Segregated network namespaces for selected user
 
