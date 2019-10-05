@@ -29,6 +29,13 @@
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 
+#ifdef PAM_LONET
+#include <nlinline.h>
+#define PAM_NET "lonet"
+#else
+#define PAM_NET "newnet"
+#endif
+
 #include <pam_net_checkgroup.h>
 
 /**
@@ -57,19 +64,22 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 	int rv;
 	int isnewnet;
 
-	init_log ("pam_newnet");
+	init_log ("pam_" PAM_NET);
 	if ((rv=pam_get_user(pamh, &user, NULL) != PAM_SUCCESS)) {
 		syslog (LOG_ERR, "get user: %s", strerror(errno));
 		goto close_log_and_exit;
 	}
 
-	isnewnet = checkgroup(user, "newnet");
+	isnewnet = checkgroup(user, PAM_NET);
 
 	if (isnewnet > 0) {
 		if (unshare(CLONE_NEWNET) < 0) {
 			syslog (LOG_ERR, "Failed to create a new netns: %s", strerror(errno));
 			goto close_log_and_abort;
 		}
+#ifdef PAM_LONET
+		nlinline_linksetupdown(1, 1); // bring lo up
+#endif
 	} else
 		rv=PAM_IGNORE;
 close_log_and_exit:

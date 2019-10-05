@@ -1,30 +1,35 @@
-.TH PAM_NEWNET 8 "August 17, 2016" "VirtualSquare Labs"
+.TH PAM_NEWNET 8 "October 5, 2019" "VirtualSquare Labs"
 .SH "NAME"
-pam_newnet \- create a new network namespace at login
+pam_newnet pam_lonet \- create a new network namespace at login
 .SH "SYNOPSIS"
-\fBpam_newnet\&.so\fR 
+\fBpam_newnet\&.so\fR
+
+\fBpam_lonet\&.so\fR
 .SH DESCRIPTION
-The pam_newnet PAM module creates a new network namespace at login for users in the \fInewnet\fR group.
+The pam_newnet and pam_lonet PAM modules create a new network namespace at login for users in the
+\fInewnet\fR or \fIlonet\fR group respectively.
 
-Users in the newnet group can log-in through a
-network connection (e.g. by ssh) but their processes cannot communicate
-(the only interface they can see is the localhost of the namespace created
+Users in the newnet or lonet groups can log-in through a
+network connection (e.g. by ssh) but their processes cannot communicate.
+The only interface they can see is the localhost of the namespace created
 at login time.
-Networking can take place just between processes of the same
-session).
 
-When pam_newnet is used together with a specific \fBcado(1)\fR configuration 
+Using \fBpam_lonet\fR the localhost interface is enabled and
+networking can take place just between processes of the same session.
+\fBpam_newnet\fR leaves the localhost interface down.
+
+When pam_newnet or pam_nlonet are used together with a specific \fBcado(1)\fR configuration
 users can configure their own networking services. (see https://github.com/rd235/cado)
 
-The nsutils tools, and more specfically \fBnetnsjoin(1)\fR, allow users to 
-assign placeholders to keep namespaces alive, assign meaningful tags for an easier management, 
+The nsutils tools, and more specfically \fBnetnsjoin(1)\fR, allow users to
+assign placeholders to keep namespaces alive, assign meaningful tags for an easier management,
 and later join any of their own namespaces (see https://github.com/rd235/nsutils)
 
 .SH "RETURN VALUES"
 .PP
 PAM_IGNORE
 .RS 4
-User does not belong to the \fInewnet\fR group\&.
+User does not belong to the \fInewnet\fR or \fIlonet\fR group\&.
 .RE
 .PP
 PAM_ABORT
@@ -38,12 +43,14 @@ Success\&.
 .RE
 .SH "EXAMPLES"
 .PP
-Add the following line to
+Add the following lines to
 /etc/pam\&.d/sshd
 or /etc/pam\&.d/login
 .sp
 .RS 8
 session   required  pam_newnet.so
+
+session   required  pam_lonet.so
 .RE
 .sp
 .SH "SEE ALSO"
