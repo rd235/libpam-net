@@ -1,0 +1,3 @@
+[submodule "nlinline"]
+	path = nlinline
+	url = https://github.com/virtualsquare/nlinline.git

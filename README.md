@@ -15,19 +15,35 @@ namespace does does not exist, it is created during the login process.
 
 ### INSTALL:
 
-Prerequisite: install [nlinline](https://github.com/virtualsquare/nlinline)
-first (it is an include file, not a library, so it will not create dependencies
-in the pam modules).
-
-Get the source code and run the following from the root of the source tree:
+#### Get the source code:
 ```
-$ mkdir build
-$ cd build
-$ cmake .. -DLIBSECURITYDIR=/lib/x86_64-linux-gnu/security/
-$ make
-$ sudo make install
+git clone --recurse-submodules https://github.com/rd235/libpam-net.git
 ```
+#### Update the source code:
+```
+git pull --recurse-submodules
+git submodule foreach -q --recursive 'git checkout master; git pull'
+```
+#### Compile and install
+Run the following commands from the root of the source tree:
+```
+mkdir build
+cd build
+cmake .. -DLIBSECURITYDIR=/lib/x86_64-linux-gnu/security/
+make
+sudo make install
+```
+#### Create the Debian packets
+```
+./create_deb.sh
+```
+or
+```
+debuild -us -uc
+```
+(`./create_deb.sh` newtag` creates the source orig archive)
 
+#### Configuration
 Add the rules to the pam configuration files: e.g. */etc/pam.d/sshd* or
 */etc/pam.d/login*
 ```

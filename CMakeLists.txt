@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.0)
-project("libpam-net")
+project("libpam-net"
+		VERSION 0.1
+		DESCRIPTION "create/join network namespaces at login"
+		HOMEPAGE_URL "https://github.com/rd235/libpam-net"
+    LANGUAGES C)
 
 include(GNUInstallDirs)
 include(CheckIncludeFile)
 
 add_definitions(-D_GNU_SOURCE)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/nlinline)
+set (CMAKE_REQUIRED_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/nlinline)
 
 unset(NLINLINE_INCLUDE CACHE)
 check_include_file(nlinline.h NLINLINE_INCLUDE)
