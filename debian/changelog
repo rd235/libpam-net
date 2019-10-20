@@ -1,6 +1,6 @@
 libpam-net (0.1-1) unstable; urgency=medium
 
-  * Initial release (Closes: #00000)
+  * Initial release (Closes: #942721)
   * Thanks to Samuele Evangelisti for his contribution to Debian packaging
 
  -- Renzo Davoli <renzo@cs.unibo.it>  Thu, 29 Aug 2019 16:57:23 +0200

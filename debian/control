@@ -10,7 +10,7 @@ Vcs-Git: https://github.com/rd235/libpam-net
 Package: libpam-net
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Section: devel
+Section: libs
 Description: create/join network namespaces at login
  libpam-net implements three pam modules:
  .
