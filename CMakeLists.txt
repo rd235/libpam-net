@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 project("libpam-net"
-		VERSION 0.1
+		VERSION 0.2
 		DESCRIPTION "create/join network namespaces at login"
 		HOMEPAGE_URL "https://github.com/rd235/libpam-net"
     LANGUAGES C)

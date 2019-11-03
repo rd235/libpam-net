@@ -1,3 +1,11 @@
+libpam-net (0.2-1) unstable; urgency=medium
+
+  * New version 0.2
+  * options: lodown and group
+  * rootshared for pam_usernet
+
+ -- Renzo Davoli <renzo@cs.unibo.it>  Sun, 03 Nov 2019 16:49:23 +0100
+
 libpam-net (0.1-1) unstable; urgency=medium
 
   * Initial release (Closes: #942721)
