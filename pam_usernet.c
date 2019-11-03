@@ -68,57 +68,33 @@ void end_log()
 int bind_etc(const char *name)
 {
 	int rv = 0;
-	char *etc_netns_path = NULL;
+	char etc_netns_path[sizeof(NETNS_ETC_DIR) + NAME_MAX];
+  char netns_name[PATH_MAX];
+  char etc_name[PATH_MAX];
+	struct dirent *entry;
+	DIR *dir;
 
-	rv = asprintf(&etc_netns_path, "%s/%s", NETNS_ETC_DIR, name);
-	if(rv == -1)
-		goto alloc_fail;
-
-	DIR *dir = opendir(etc_netns_path);
+	snprintf(etc_netns_path, sizeof(etc_netns_path), "%s/%s", NETNS_ETC_DIR, name);
+	dir = opendir(etc_netns_path);
 	if (!dir)
 		return -1;
 
-	struct dirent *entry = NULL;
-	char *netns_name = NULL;
-	char *etc_name = NULL;
 	while ((entry = readdir(dir)) != NULL) {
 		if (strcmp(entry->d_name, ".") == 0)
 			continue;
 		if (strcmp(entry->d_name, "..") == 0)
 			continue;
 
-		rv = asprintf(&netns_name, "%s/%s", etc_netns_path, entry->d_name);
-		if(rv == -1)
-			goto free_dir;
-
-		rv = asprintf(&etc_name, "/etc/%s", entry->d_name);
-		if(rv == -1)
-			goto free_netns_name;
-
+		snprintf(netns_name, sizeof(netns_name), "%s/%s", etc_netns_path, entry->d_name);
+		snprintf(etc_name, sizeof(etc_name), "/etc/%s", entry->d_name);
 		if (mount(netns_name, etc_name, "none", MS_BIND, NULL) < 0) {
 			syslog (LOG_ERR, "Bind %s -> %s failed: %s\n",
 				netns_name, etc_name, strerror(errno));
 		}
 	}
 
-	rv = 0;
-
-/*free_etc_name:*/
-	free(etc_name);
-free_netns_name:
-	free(netns_name);
-free_dir:
 	closedir(dir);
-/*free_etc_netns_path:*/
-	free(etc_netns_path);
-
-alloc_fail:
-	if(rv == -1) {
-		syslog (LOG_ERR, "allocating memory failed");
-		return -1;
-	} else {
-		return 0;
-	}
+	return 0;
 }
 
 /**
@@ -233,7 +209,7 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 	const char *user;
 	int rv;
 	int isusernet;
-	char *ns_path = NULL;
+  char ns_path[PATH_MAX];
 
 	init_log ("pam_usernet");
 	if ((rv=pam_get_user(pamh, &user, NULL) != PAM_SUCCESS)) {
@@ -251,9 +227,7 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 	if (create_netns_rundir() == -1)
 		goto close_log_and_abort;
 
-	rv = asprintf(&ns_path, "%s/%s", NETNS_RUN_DIR, user);
-	if(rv == -1)
-		goto close_log_and_abort;
+	snprintf(ns_path, sizeof(ns_path), "%s/%s", NETNS_RUN_DIR, user);
 
 	rv = enter_netns(ns_path);
 	if(rv == -1)
@@ -302,9 +276,6 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 	return PAM_SUCCESS;
 
 close_log_and_abort:
-	if(ns_path)
-		free(ns_path);
-
 	end_log();
 	return PAM_ABORT;
 }
