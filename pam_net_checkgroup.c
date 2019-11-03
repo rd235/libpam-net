@@ -1,6 +1,6 @@
 /* 
  * pam_net_common.
- * Copyright (C) 2016  Renzo Davoli, Eduard Caizer University of Bologna
+ * Copyright (C) 2016, 2019 Renzo Davoli, Eduard Caizer University of Bologna
  * 
  * pam_net common code.
  *
@@ -26,23 +26,19 @@
 
 /* check if "user" belongs to "group" */
 int checkgroup(const char *user, const char *group) {
-	struct passwd *pw=getpwnam(user);
+	struct passwd *pw = getpwnam(user);
+	struct group *gr = getgrnam(group);
 	int ngroups=0;
 	if (pw == NULL) return -1;
+	if (gr == NULL) return 0;
 	if (getgrouplist(user, pw->pw_gid, NULL, &ngroups) < 0) {
 		gid_t gids[ngroups];
 		if (getgrouplist(user, pw->pw_gid, gids, &ngroups) == ngroups) {
-			struct group *grp;
 			int i;
-			while ((grp=getgrent()) != NULL) {
-				for (i=0; i<ngroups; i++) {
-					if (grp->gr_gid == gids[i] && strcmp(grp->gr_name,group) == 0) {
-						endgrent();
-						return 1;
-					}
-				}
+			for (i=0; i<ngroups; i++) {
+				if (gr->gr_gid == gids[i]) 
+					return 1;
 			}
-			endgrent();
 			return 0;
 		}
 	}
