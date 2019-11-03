@@ -42,8 +42,33 @@
 
 #include <pam_net_checkgroup.h>
 
+#define DEFAULT_GROUP "usernet"
 #define NETNS_RUN_DIR "/var/run/netns/"
 #define NETNS_ETC_DIR "/etc/netns"
+
+/**
+ * module args:
+ * lodown, rootshared, group=....
+ */
+struct pam_net_args {
+	const char *group;
+	int flags;
+};
+#define LODOWN 0x1
+#define ROOTSHARED 0x2
+
+static void parse_argv(struct pam_net_args *args, int argc, const char **argv) {
+	for(; argc-- > 0; argv++) {
+		if (strcmp(*argv, "lodown") == 0)
+			args->flags |= LODOWN;
+		else if (strcmp(*argv, "rootshared") == 0)
+			args->flags |= ROOTSHARED;
+		else if (strncmp(*argv, "group=", 6) == 0)
+			args->group = (*argv) + 6;
+		else
+			syslog (LOG_ERR, "Unknown option: %s", *argv);
+	}
+}
 
 /**
  * init_log: log initialization with the given name
@@ -88,7 +113,7 @@ int bind_etc(const char *name)
 		snprintf(netns_name, sizeof(netns_name), "%s/%s", etc_netns_path, entry->d_name);
 		snprintf(etc_name, sizeof(etc_name), "/etc/%s", entry->d_name);
 		if (mount(netns_name, etc_name, "none", MS_BIND, NULL) < 0) {
-			syslog (LOG_ERR, "Bind %s -> %s failed: %s\n",
+			syslog (LOG_ERR, "Bind %s -> %s failed: %s",
 				netns_name, etc_name, strerror(errno));
 		}
 	}
@@ -210,15 +235,21 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 	int rv;
 	int isusernet;
   char ns_path[PATH_MAX];
+	struct pam_net_args pam_args = {
+		.group = DEFAULT_GROUP,
+		.flags = 0};
 
 	init_log ("pam_usernet");
+
+	parse_argv(&pam_args, argc, argv);
+
 	if ((rv=pam_get_user(pamh, &user, NULL) != PAM_SUCCESS)) {
 		syslog (LOG_ERR, "get user: %s", strerror(errno));
 		end_log();
 		return PAM_SUCCESS;
 	}
 
-	isusernet = checkgroup(user, "usernet");
+	isusernet = checkgroup(user, pam_args.group);
 	if(isusernet <= 0) {
 		end_log();
 		return PAM_IGNORE;
@@ -234,7 +265,7 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 		goto close_log_and_abort;
 
 	if (unshare(CLONE_NEWNS) < 0) {
-		syslog (LOG_ERR, "unshare(mount) failed: %s\n", strerror(errno));
+		syslog (LOG_ERR, "unshare(mount) failed: %s", strerror(errno));
 		goto close_log_and_abort;
 	}
 	/* Don't let any mounts propagate back to the parent */
@@ -261,7 +292,7 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 		}
 	}
 	if (mount(user, "/sys", "sysfs", mountflags, NULL) < 0) {
-		syslog (LOG_ERR, "mount of /sys failed: %s\n", strerror(errno));
+		syslog (LOG_ERR, "mount of /sys failed: %s", strerror(errno));
 		goto close_log_and_abort;
 	}
 
