@@ -41,6 +41,7 @@
 #include <security/pam_modules.h>
 
 #include <pam_net_checkgroup.h>
+#include <nlinline.h>
 
 #define DEFAULT_GROUP "usernet"
 #define NETNS_RUN_DIR "/var/run/netns/"
@@ -167,7 +168,7 @@ int create_netns_rundir(void)
 /**
  * unshare_netns: Create new netns, including mounting the handle to ns_path.
  */
-int unshare_netns(char *ns_path)
+int unshare_netns(char *ns_path, int flags)
 {
 	int rv;
 	int nsfd;
@@ -195,6 +196,9 @@ int unshare_netns(char *ns_path)
 		return -1;
 	}
 
+	if ((flags & LODOWN) == 0)
+		nlinline_linksetupdown(1, 1); // bring lo up
+
 	return nsfd;
 }
 
@@ -202,13 +206,13 @@ int unshare_netns(char *ns_path)
  * enter_netns: Ensure we are in the netns referred to by ns_path, either by
  * creating it or entering it if it already exists.
  */
-int enter_netns(char *ns_path)
+int enter_netns(char *ns_path, int flags)
 {
 	int nsfd;
 	nsfd = open(ns_path, O_RDONLY);
 	if (nsfd < 0) {
 		if (errno == ENOENT) {
-			unshare_netns(ns_path);
+			unshare_netns(ns_path, flags);
 		} else {
 			syslog (LOG_ERR, "netns open failed %s", ns_path);
 			return -1;
@@ -260,7 +264,7 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 
 	snprintf(ns_path, sizeof(ns_path), "%s/%s", NETNS_RUN_DIR, user);
 
-	rv = enter_netns(ns_path);
+	rv = enter_netns(ns_path, pam_args.flags);
 	if(rv == -1)
 		goto close_log_and_abort;
 
