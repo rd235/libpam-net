@@ -29,14 +29,34 @@
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 
-#ifdef PAM_LONET
-#include <nlinline.h>
-#define PAM_NET "lonet"
-#else
-#define PAM_NET "newnet"
-#endif
-
 #include <pam_net_checkgroup.h>
+#include <nlinline.h>
+
+#define DEFAULT_GROUP "newnet"
+
+/**
+ * module args:
+ * lodown, rootshared, group=....
+ */
+struct pam_net_args {
+	const char *group;
+	int flags;
+};
+#define LODOWN 0x1
+
+/**
+ * parse_argv: parse module arguments
+ */
+static void parse_argv(struct pam_net_args *args, int argc, const char **argv) {
+	for(; argc-- > 0; argv++) {
+		if (strcmp(*argv, "lodown") == 0)
+			args->flags |= LODOWN;
+		else if (strncmp(*argv, "group=", 6) == 0)
+			args->group = (*argv) + 6;
+		else
+			syslog (LOG_ERR, "Unknown option: %s", *argv);
+	}
+}
 
 /**
  * init_log: log initialization with the given name
@@ -63,23 +83,30 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 	const char *user;
 	int rv;
 	int isnewnet;
+	struct pam_net_args pam_args = {
+		.group = DEFAULT_GROUP,
+		.flags = 0};
 
-	init_log ("pam_" PAM_NET);
+	init_log ("pam_newnet");
+
+	parse_argv(&pam_args, argc, argv);
+
 	if ((rv=pam_get_user(pamh, &user, NULL) != PAM_SUCCESS)) {
 		syslog (LOG_ERR, "get user: %s", strerror(errno));
 		goto close_log_and_exit;
 	}
 
-	isnewnet = checkgroup(user, PAM_NET);
+	isnewnet = checkgroup(user, pam_args.group);
 
 	if (isnewnet > 0) {
 		if (unshare(CLONE_NEWNET) < 0) {
 			syslog (LOG_ERR, "Failed to create a new netns: %s", strerror(errno));
 			goto close_log_and_abort;
 		}
-#ifdef PAM_LONET
-		nlinline_linksetupdown(1, 1); // bring lo up
-#endif
+
+		if ((pam_args.flags & LODOWN) == 0)
+			nlinline_linksetupdown(1, 1); // bring lo up
+
 	} else
 		rv=PAM_IGNORE;
 close_log_and_exit:
