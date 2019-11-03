@@ -17,9 +17,6 @@ Description: create/join network namespaces at login
  pam_newnet.so: users belonging to the newnet group get a new network namespace
  at login. lo interface is down.
  .
- pam_lonet.so: users belonging to the lonet group get a new network namespace
- at login. lo interface is up.
- .
  pam_usernet.so users belonging to the usernet group get their own network name
  at login. If a network namespace having the same name as the username exists,
  pam runs the user's shell in that namespace. If such a namespace does not

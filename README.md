@@ -3,10 +3,7 @@
 **libpam-net** implements three pam modules:
 
 - **pam_newnet.so**: users belonging to the *newnet* group get a new
-network namespace at login (loopback device *lo* is down)
-
-- **pam_lonet.so**: users belonging to the *lonet* group get a new
-network namespace at login (loopback device *lo* is up)
+network namespace at login
 
 - **pam_usernet.so** users belonging to the *usernet* group get their own
 network name at login. If a network namespace having the same name as the
@@ -48,7 +45,6 @@ Add the rules to the pam configuration files: e.g. */etc/pam.d/sshd* or
 */etc/pam.d/login*
 ```
 session   required  pam_newnet.so
-session   required  pam_lonet.so
 session   required  pam_usernet.so
 ```
 
@@ -69,13 +65,7 @@ usernet:x:150:renzousernet
 Using **pam_newnet.so** users in the *newnet* group can log-in through a network
 connection (e.g. by ssh) but their processes cannot communicate with the network
 at all. The only interface they can see is an isolated loopback **lo** interface
-created at login time *and lo is down*.
-
-aUsing **pam_lonet.so** users in the *lonet* group can log-in through a network
-connection (e.g. by ssh) but their processes cannot communicate with the network
-at all. The only interface they can see is an isolated loopback **lo** interface
-created at login time. *lo interface is up*, hence networking can only take place
-between processes of the same session.
+created at login time.
 
 ##### Segregated network namespaces for selected user
 

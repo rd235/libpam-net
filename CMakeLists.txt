@@ -27,14 +27,10 @@ endif()
 add_library(pam_newnet SHARED pam_newnet.c pam_net_checkgroup.c)
 set_target_properties(pam_newnet PROPERTIES PREFIX "")
 
-add_library(pam_lonet SHARED pam_newnet.c pam_net_checkgroup.c)
-set_target_properties(pam_lonet PROPERTIES PREFIX "")
-target_compile_options(pam_lonet PRIVATE -DPAM_LONET)
-
 add_library(pam_usernet SHARED pam_usernet.c pam_net_checkgroup.c)
 set_target_properties(pam_usernet PROPERTIES PREFIX "")
 
-install(TARGETS pam_newnet pam_lonet pam_usernet
+install(TARGETS pam_newnet pam_usernet
 		DESTINATION ${CMAKE_INSTALL_PAMDIR})
 
 file(GLOB MAN8_PAGES ${CMAKE_CURRENT_SOURCE_DIR}/*.8)
