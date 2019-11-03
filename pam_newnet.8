@@ -8,7 +8,7 @@ pam_newnet \- create a new network namespace at login
 The pam_newnet PAM module creates a new network namespace at login for users in the
 \fInewnet\fR group.
 
-Users in the newnet group can log-in through a
+Users in the \fInewnet\fR group can log-in through a
 network connection (e.g. by ssh) but their processes cannot communicate.
 The only interface they can see is the localhost of the namespace created
 at login time.
@@ -19,6 +19,18 @@ users can configure their own networking services. (see https://github.com/rd235
 The nsutils tools, and more specfically \fBnetnsjoin(1)\fR, allow users to
 assign placeholders to keep namespaces alive, assign meaningful tags for an easier management,
 and later join any of their own namespaces (see https://github.com/rd235/nsutils)
+
+.SH "OPTIONS"
+.PP
+\fBgroup=\fR\fB\fIgroupname\fR\fR
+.RS 4
+the module operates on users in the group \fIgroupname\fR instead of \fInewnet\fR.
+.RE
+.PP
+\fBlodown\fR
+.RS 4
+leave the localhost \fIlo\fR interface in the state DOWN.
+.RE
 
 .SH "RETURN VALUES"
 .PP
@@ -44,6 +56,8 @@ or /etc/pam\&.d/login
 .sp
 .RS 8
 session   required  pam_newnet.so
+.sp
+session   required  pam_newnet.so group=lonet lodown
 .RE
 .sp
 .SH "SEE ALSO"

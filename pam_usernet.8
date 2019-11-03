@@ -20,6 +20,25 @@ login.
 When pam_usernet is used together with a specific \fBcado(1)\fR configuration
 users can configure their own networking services. (see https://github.com/rd235/cado)
 
+.SH "OPTIONS"
+.PP
+\fBgroup=\fR\fB\fIgroupname\fR\fR
+.RS 4
+the module operates on users in the group \fIgroupname\fR instead of \fInewnet\fR.
+.RE
+.PP
+\fBlodown\fR
+.RS 4
+leave the localhost \fIlo\fR interface in the state DOWN.
+.RE
+.PP
+\fBrootshared\fR
+.RS 4
+Leave the root filesystem \fI/\fR as shared so mounts can propagate out to the
+parent namespace. Warning: this feature can create security vulnerabilities if not
+properly used.
+.RE
+
 .SH "RETURN VALUES"
 .PP
 PAM_IGNORE
