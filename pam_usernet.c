@@ -165,9 +165,11 @@ int remount_sys(const char *name, int flags)
 		}
 	} else {
 		/* ROOTSHARED */
-		/* Temporarily make '/' private until we're done re-mounting /sys */
-		if (mount("", "/", "none", MS_PRIVATE | MS_REC, NULL)) {
-			syslog (LOG_ERR, "\"mount --make-rprivate /\" failed: %s\n",
+		/* Make /sys private so the remounting below doesn't
+                 * propagate to the parent namespace, since we're leaving
+                 * the root directory shared */
+		if (mount("", "/sys", "none", MS_PRIVATE | MS_REC, NULL)) {
+			syslog (LOG_ERR, "\"mount --make-rprivate /sys\" failed: %s\n",
 					strerror(errno));
 			return -1;
 		}
@@ -187,19 +189,10 @@ int remount_sys(const char *name, int flags)
 				mountflags = MS_RDONLY;
 		}
 	}
+
 	if (mount(name, "/sys", "sysfs", mountflags, NULL) < 0) {
 		syslog (LOG_ERR, "mount of /sys failed: %s", strerror(errno));
 		return -1;
-	}
-
-	if (flags & ROOTSHARED) {
-		/* ROOTSHARED */
-		/* Make '/' shared again! */
-		if (mount("", "/", "none", MS_SHARED | MS_REC, NULL)) {
-			syslog (LOG_ERR, "\"mount --make-rshared /\" failed: %s\n",
-					strerror(errno));
-			return -1;
-		}
 	}
 
 	return 0;
