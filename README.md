@@ -1,6 +1,6 @@
 ## LIBPAM-NET: create/join network namespaces at login
 
-**libpam-net** implements three pam modules:
+**libpam-net** implements two pam modules:
 
 - **pam_newnet.so**: users belonging to the *newnet* group get a new
 network namespace at login
@@ -30,16 +30,6 @@ cmake .. -DLIBSECURITYDIR=/lib/x86_64-linux-gnu/security/
 make
 sudo make install
 ```
-#### Create the Debian packets
-```
-./create_deb.sh
-```
-or
-```
-debuild -us -uc
-```
-(`./create_deb.sh` newtag` creates the source orig archive)
-
 #### Configuration
 Add the rules to the pam configuration files: e.g. */etc/pam.d/sshd* or
 */etc/pam.d/login*
