@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.12)
 project("libpam-net"
 		VERSION 0.2
 		DESCRIPTION "create/join network namespaces at login"
@@ -36,3 +36,10 @@ file(GLOB MAN8_PAGES ${CMAKE_CURRENT_SOURCE_DIR}/*.8)
 
 install(FILES ${MAN8_PAGES}
 	DESTINATION ${CMAKE_INSTALL_MANDIR}/man8)
+
+add_custom_target(uninstall
+  "${CMAKE_COMMAND}"
+    -DCADO_SPOOL_DIR=${CADO_SPOOL_DIR}
+    -P "${PROJECT_SOURCE_DIR}/Uninstall.cmake"
+  )
+
