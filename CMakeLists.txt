@@ -9,8 +9,7 @@ include(GNUInstallDirs)
 include(CheckIncludeFile)
 
 add_definitions(-D_GNU_SOURCE)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/nlinline)
-set (CMAKE_REQUIRED_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/nlinline)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 unset(NLINLINE_INCLUDE CACHE)
 check_include_file(nlinline.h NLINLINE_INCLUDE)
