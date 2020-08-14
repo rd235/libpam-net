@@ -46,7 +46,6 @@ must be subject to one or the other service:
 
 e.g. in /etc/group:
 ```
-newnet:x:148:renzononet
 newnet:x:149:renzononet
 usernet:x:150:renzousernet
 ```
