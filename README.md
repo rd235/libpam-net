@@ -12,14 +12,17 @@ namespace does does not exist, it is created during the login process.
 
 ### INSTALL:
 
+#### Requirements
+
+**libpam-net** needs [**nlinline**](https://github.com/virtualsquare/nlinline).
+
 #### Get the source code:
 ```
-git clone --recurse-submodules https://github.com/rd235/libpam-net.git
+git clone https://github.com/rd235/libpam-net.git
 ```
 #### Update the source code:
 ```
-git pull --recurse-submodules
-git submodule foreach -q --recursive 'git checkout master; git pull'
+git pull
 ```
 #### Compile and install
 Run the following commands from the root of the source tree:
