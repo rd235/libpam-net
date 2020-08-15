@@ -70,8 +70,8 @@ sysadmin can create a network namespace for user *renzousernet* as follows:
 
 ```
 # ip netns add renzousernet
-# ip -netns renzousernet  link set dev lo up
-# ip netns exec renzousernet tunctl -t eth0
+# ip -netns renzousernet link set dev lo up
+# ip -netns renzousernet tuntap add name eth0 mode tap
 # ...
 ```
 
