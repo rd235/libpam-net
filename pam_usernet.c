@@ -128,7 +128,7 @@ int bind_etc(const char *name, int flags)
 	snprintf(etc_netns_path, sizeof(etc_netns_path), "%s/%s", NETNS_ETC_DIR, name);
 	dir = opendir(etc_netns_path);
 	if (!dir)
-		return -1;
+		return errno == ENOENT ? 0 : -1;
 
 	while ((entry = readdir(dir)) != NULL) {
 		if (strcmp(entry->d_name, ".") == 0)
@@ -153,7 +153,7 @@ int bind_etc(const char *name, int flags)
  */
 int remount_sys(const char *name, int flags)
 {
-	unsigned long mountflags = 0;
+	unsigned long mountflags = MS_NOSUID | MS_NOEXEC | MS_NODEV;
 
 	if ((flags & ROOTSHARED) == 0) {
 		/* DEFAULT behavior: NOT ROOTSHARED */
@@ -186,12 +186,17 @@ int remount_sys(const char *name, int flags)
 			 * overlay it. A read-only instance can't be shadowed
 			 * with a read-write one. */
 			if (fsstat.f_flag & ST_RDONLY)
-				mountflags = MS_RDONLY;
+				mountflags |= MS_RDONLY;
 		}
 	}
 
 	if (mount(name, "/sys", "sysfs", mountflags, NULL) < 0) {
 		syslog (LOG_ERR, "mount of /sys failed: %s", strerror(errno));
+		return -1;
+	}
+
+	if (mount("cgroup2", "/sys/fs/cgroup", "cgroup2", mountflags, NULL) < 0) {
+		syslog (LOG_ERR, "mount of /sys/fs/cgroup failed: %s", strerror(errno));
 		return -1;
 	}
 
