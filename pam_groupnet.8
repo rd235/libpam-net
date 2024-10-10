@@ -1,0 +1,74 @@
+.TH PAM_GROUPNET 8 "August 17, 2016" "VirtualSquare Labs"
+.SH "NAME"
+pam_groupnet \- join/create a specific network namespace at login
+.SH "SYNOPSIS"
+\fBpam_groupnet\&.so\fR
+.SH DESCRIPTION
+The pam_groupnet PAM module allow each user in \fIgroupnet\fR group to join a
+specific network namespace.
+
+If the specified network namespace exists, pam runs the user shell in that
+namespace. If such a namespace does does not exist, it is created during the login
+process.
+
+The system administrator can specify the network
+namespace to join by creating groups starting with \fIgroupnet-\fR. The text written
+after the dash will be used as the network namespace name to join or create.
+Users will join the network namespace at login.
+
+If a user is part of multiple groups starting with \fIgroupnet-\fR, the first one
+that matches is used. Group testing order is as returned by \fIgetgrouplist(3)\fR.
+
+.SH "OPTIONS"
+.PP
+\fBgroup=\fR\fB\fIgroupname\fR\fR
+.RS 4
+the module operates on users in the group \fIgroupname-\fR instead of \fIgroupnet-\fR.
+.RE
+.PP
+\fBlodown\fR
+.RS 4
+leave the localhost \fIlo\fR interface in the state DOWN.
+.RE
+.PP
+\fBrootshared\fR
+.RS 4
+Leave the root filesystem \fI/\fR as shared so mounts can propagate out to the
+parent namespace. Warning: this feature can create security vulnerabilities if not
+properly used.
+.RE
+
+.SH "RETURN VALUES"
+.PP
+PAM_IGNORE
+.RS 4
+User does not belong to any \fIgroupnet-*\fR group\&.
+.RE
+.PP
+PAM_ABORT
+.RS 4
+Error in retrieving the user id or in the namespace creation/joining\&.
+.RE
+.PP
+PAM_SUCCESS
+.RS 4
+Success\&.
+.RE
+.SH "EXAMPLES"
+.PP
+Add the following line to
+/etc/pam\&.d/sshd
+or /etc/pam\&.d/login
+.sp
+.RS 8
+session   required  pam_groupnet.so
+.RE
+.sp
+.SH "SEE ALSO"
+.PP
+\fBpam.conf\fR(5),
+\fBpam.d\fR(5),
+\fBpam\fR(7)
+.SH "AUTHOR"
+.PP
+pam_groupnet was written by Renzo Davoli and Eduard Caizer, University of Bologna

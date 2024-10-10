@@ -1,6 +1,6 @@
 ## LIBPAM-NET: create/join network namespaces at login
 
-**libpam-net** implements two pam modules:
+**libpam-net** implements three pam modules:
 
 - **pam_newnet.so**: users belonging to the *newnet* group get a new
 network namespace at login
@@ -9,6 +9,12 @@ network namespace at login
 network name at login. If a network namespace having the same name as the
 username exists, pam runs the user's shell in that namespace. If such a
 namespace does does not exist, it is created during the login process.
+
+- **pam_groupnet.so** users belonging to any group starting with *groupnet-*
+join the network namespace named after the dash of the group.
+If the specified network namespace exists, pam runs the user shell in that
+namespace. If such a namespace does does not exist, it is created during the
+login process.
 
 ### INSTALL:
 
@@ -39,15 +45,17 @@ Add the rules to the pam configuration files: e.g. */etc/pam.d/sshd* or
 ```
 session   required  pam_newnet.so
 session   required  pam_usernet.so
+session   required  pam_groupnet.so
 ```
 
-Create the groups *newnet* and *usernet* including all the users that
-must be subject to one or the other service:
+Create the groups *newnet*, *usernet* and any (or none) *groupnet-&ast;* 
+including all the users that must be subject to one or the other service:
 
 e.g. in /etc/group:
 ```
 newnet:x:149:renzononet
 usernet:x:150:renzousernet
+groupnet-vpn:x:151:renzogroupnet
 ```
 
 ### Use Cases
@@ -64,6 +72,10 @@ created at login time.
 Using **pam_usernet.so** the system administrator can create network namespaces
 for each user in the *usernet* group. Each namespace must be named after each
 username.
+
+Alternatively, using **pam_groupnet.so** the system administrator can create
+different network namespaces to be shared by multiple users. e.g. for forced VPN
+tunneling without affecting other users.
 
 Users will *land* in their assigned network namespace at login. e.g. the
 sysadmin can create a network namespace for user *renzousernet* as follows:
