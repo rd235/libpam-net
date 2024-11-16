@@ -44,3 +44,31 @@ int checkgroup(const char *user, const char *group) {
 	}
 	return -1;
 }
+
+char *get_groupnet_netns(const char *user, const char *group) {
+	struct passwd *pw = getpwnam(user);
+	int ngroups=0;
+
+	if (pw == NULL || getgrouplist(user, pw->pw_gid, NULL, &ngroups) >= 0) {
+		return NULL;
+	}
+
+	gid_t gids[ngroups];
+	if (getgrouplist(user, pw->pw_gid, gids, &ngroups) != ngroups) {
+		return NULL;
+	}
+
+	int grouplen = strlen(group);
+	int i;
+	struct group *gr;
+	for (i=0; i<ngroups; i++) {
+		gr = getgrgid(gids[i]);
+		if (gr != NULL && strncmp(gr->gr_name, group, grouplen) == 0
+				&& strlen(gr->gr_name) > grouplen + 1
+				&& gr->gr_name[grouplen] == '-') {
+			return strdup(gr->gr_name + grouplen + 1);
+		}
+	}
+
+	return NULL;
+}
