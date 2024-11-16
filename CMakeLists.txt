@@ -28,9 +28,11 @@ set_target_properties(pam_newnet PROPERTIES PREFIX "")
 
 add_library(pam_usernet SHARED pam_usernet.c pam_net_checkgroup.c)
 set_target_properties(pam_usernet PROPERTIES PREFIX "")
+target_compile_definitions(pam_usernet PUBLIC PAM_USERNET)
 
 add_library(pam_groupnet SHARED pam_groupnet.c pam_net_checkgroup.c)
 set_target_properties(pam_groupnet PROPERTIES PREFIX "")
+target_compile_definitions(pam_groupnet PUBLIC PAM_GROUPNET)
 
 install(TARGETS pam_newnet pam_usernet pam_groupnet
 		DESTINATION ${CMAKE_INSTALL_PAMDIR})

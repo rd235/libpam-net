@@ -48,7 +48,7 @@ session   required  pam_usernet.so
 session   required  pam_groupnet.so
 ```
 
-Create the groups *newnet*, *usernet* and any (or none) *groupnet-&ast;* 
+Create the groups *newnet*, *usernet* and any (or none) *groupnet-&ast;*
 including all the users that must be subject to one or the other service:
 
 e.g. in /etc/group:

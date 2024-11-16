@@ -1,6 +1,6 @@
 /*
- * pam_usernet.
- * Copyright (C) 2017-2019  Renzo Davoli University of Bologna
+ * pam_usernet / pam_groupnet (shared source)
+ * Copyright (C) 2017-2024  Renzo Davoli University of Bologna
  * Copyright (C) 2018-2019  Daniel Gröber
  * Copyright (C) 2016  Renzo Davoli, Eduard Caizer University of Bologna
  * Copyright (C) 2011-2017 The iproute2 Authors
@@ -8,6 +8,10 @@
  * pam_usernet module
  *    provide each user with their own network
  *   (for users belonging to the "usernet" group)
+ *
+ * pam_groupnet module
+ *    join users to a specific new or existing network, specified after the dash on the group name.
+ *   (for users belonging to the "groupnet-*" group)
  *
  * Cado is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -44,7 +48,13 @@
 #include <pam_net_checkgroup.h>
 #include <nlinline.h>
 
+#ifdef PAM_USERNET
 #define DEFAULT_GROUP "usernet"
+#elif PAM_GROUPNET
+#define DEFAULT_GROUP "groupnet"
+#else
+#error either -DPAM_USERNET or -DPAM_GROUPNET must be defined
+#endif
 #define NETNS_RUN_DIR "/var/run/netns/"
 #define NETNS_ETC_DIR "/etc/netns"
 
@@ -317,13 +327,17 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 {
 	const char *user;
 	int rv;
-	int isusernet;
+	char *target_netns = NULL;
 	char ns_path[PATH_MAX];
 	struct pam_net_args pam_args = {
 		.group = DEFAULT_GROUP,
 		.flags = 0};
 
+#ifdef PAM_USERNET
 	init_log ("pam_usernet");
+#elif PAM_GROUPNET
+	init_log ("pam_groupnet");
+#endif
 
 	parse_argv(&pam_args, argc, argv);
 
@@ -333,8 +347,13 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 		return PAM_SUCCESS;
 	}
 
-	isusernet = checkgroup(user, pam_args.group);
-	if(isusernet <= 0) {
+#ifdef PAM_USERNET
+	if (checkgroup(user, pam_args.group) > 0)
+		target_netns = (char *) user;
+#elif PAM_GROUPNET
+	target_netns = get_groupnet_netns(user, pam_args.group);
+#endif
+	if(target_netns == NULL) {
 		end_log();
 		return PAM_IGNORE;
 	}
@@ -342,7 +361,7 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 	if (create_netns_rundir() == -1)
 		goto close_log_and_abort;
 
-	snprintf(ns_path, sizeof(ns_path), "%s/%s", NETNS_RUN_DIR, user);
+	snprintf(ns_path, sizeof(ns_path), "%s/%s", NETNS_RUN_DIR, target_netns);
 
 	rv = enter_netns(ns_path, pam_args.flags);
 	if(rv == -1)
@@ -353,22 +372,28 @@ int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **ar
 		goto close_log_and_abort;
 	}
 
-	if(remount_sys(user, pam_args.flags) == -1) {
+	if(remount_sys(target_netns, pam_args.flags) == -1) {
 		syslog (LOG_ERR, "remounting /sys failed");
 		goto close_log_and_abort;
 	}
 
 	/* Setup bind mounts for config files in /etc */
-	if(bind_etc(user, pam_args.flags) == -1) {
+	if(bind_etc(target_netns, pam_args.flags) == -1) {
 		syslog (LOG_ERR, "mounting /etc/netns/%s config files failed",
-				user);
+				target_netns);
 		goto close_log_and_abort;
 	}
 
+#ifdef PAM_GROUPNET
+	free(target_netns);
+#endif
 	end_log();
 	return PAM_SUCCESS;
 
 close_log_and_abort:
+#ifdef PAM_GROUPNET
+	free(target_netns);
+#endif
 	end_log();
 	return PAM_ABORT;
 }
